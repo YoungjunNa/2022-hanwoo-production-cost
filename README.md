@@ -1,7 +1,8 @@
 # 2022년 한우 생산비 통계 분석
 
 ## raw data
-- [통계청 한우 생산비 통계](https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1EE018)
+- 통계청 [한우 생산비 통계](https://kosis.kr/statHtml/statHtml.do?orgId=101&tblId=DT_1EE018)
+- 산출기준 [다운로드](https://nias.go.kr/front/soboarddown.do?cmCode=M090814145857563&boardSeqNum=433&fileSeqNum=332)
 
 ## footnote 
 1. ’12년부터 임차료를 토지임차료, 임차료(농구비), 임차료(영농시설비)로 분리함  
