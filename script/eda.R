@@ -61,7 +61,7 @@ df %>% select(소분류, 대분류, 평균) %>%
 df %>% select(소분류, 대분류, 평균) %>% 
   mutate(평균 = 평균/10000) %>% 
   mutate(대분류 = factor(대분류, levels = order)) %>% 
-  ggbarplot(x = "대분류", y = "평균", palette = "jco", fill = "소분류") +
+  ggbarplot(x = "대분류", y = "평균", fill = "소분류") +
   coord_flip() +
   ggthemes::theme_fivethirtyeight(base_family = "NanumGothic") +
   labs(
@@ -73,3 +73,39 @@ df %>% select(소분류, 대분류, 평균) %>%
   )
 
 ## Sankey Chart
+
+
+# Load package
+library(networkD3)
+
+dd <- df %>% select(소분류, 대분류, 평균) %>% mutate(대대분류 = "전체생산비")
+
+dd1 <- dd %>% select(1:3) %>% mutate(소분류 = paste0(소분류, " "))
+dd2 <- dd %>% select(2:4) %>% select(1, 3, 2)
+dd2 <- dd2 %>% group_by(대분류, 대대분류) %>% summarise(value = sum(평균)) %>% ungroup()
+
+colnames(dd1) <- c("source", "target", "value")
+colnames(dd2) <- c("source", "target", "value")
+
+char_to_num <- tibble(
+  name = c(dd1 %>% rbind(dd2) %>% pull(source) %>% unique(), "전체생산비")
+)
+
+char_to_num <- char_to_num %>% mutate(num = row_number()-1)
+
+link <- dd1 %>% rbind(dd2) %>% 
+  left_join(char_to_num, by = c("source" = "name")) %>% 
+  left_join(char_to_num, by = c("target" = "name")) %>% 
+  select(4, 5, 3)
+  
+colnames(link) <- c("source", "target", "value")
+
+node <- dd1 %>% rbind(dd2) %>% select(1) %>% rename(name = source) %>% as.data.frame()
+node <- char_to_num %>% select(1)
+
+
+p <- sankeyNetwork(Links = link, Nodes = node, Source = "source",
+                   Target = "target", Value = "value", NodeID = "name",
+                   units = "won", fontSize = 12, nodeWidth = 30)
+
+p
