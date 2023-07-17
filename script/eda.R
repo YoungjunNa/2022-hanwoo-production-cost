@@ -9,17 +9,20 @@ df <- df %>% mutate(소분류 = stringr::str_trim(소분류))
 ## 2022년 규모별 두당 한우 생산비
 df %>%
   pivot_longer(cols = 3:7, names_to = "규모", values_to = "비용") %>% 
-  filter(규모 != "평균") %>% 
+  filter(규모 != "평균") %>%
   mutate(
-    규모 = factor(규모, levels = c("20두미만", "20~49두", "50~99두", "100두이상"))
+    규모 = factor(규모, levels = c("20두미만", "20~49두", "50~99두", "100두이상")),
+    비용 = 비용/10000
   ) %>% 
   ggplot(aes(reorder(대분류, 비용), 비용, fill = 규모)) +
   geom_col(position = "dodge") +
   coord_flip() +
+  scale_fill_viridis_d(direction = -1) +
   ggthemes::theme_fivethirtyeight(base_family = "NanumGothic") +
   labs(
-    title = "2022년 규모별 두당 한우 생산비",
-    subtitle = "단위 = 만원"
+    title = "규모별 두당 한우 비육우 생산비",
+    subtitle = "2022년 통계청 한우 생산비 통계; 단위 = 만원",
+    caption = "Newso, All Right Reserved"
   ) 
 
 df %>%
@@ -73,22 +76,30 @@ df %>% select(소분류, 대분류, 평균) %>%
   )
 
 ## Sankey Chart
-
-
 # Load package
 library(networkD3)
 
-dd <- df %>% select(소분류, 대분류, 평균) %>% mutate(대대분류 = "전체생산비")
+df %>% select(소분류, 대분류, 평균)
 
-dd1 <- dd %>% select(1:3) %>% mutate(소분류 = paste0(소분류, " "))
-dd2 <- dd %>% select(2:4) %>% select(1, 3, 2)
-dd2 <- dd2 %>% group_by(대분류, 대대분류) %>% summarise(value = sum(평균)) %>% ungroup()
+sum(df$평균)
+
+dd <- df %>% select(소분류, 대분류, 평균) %>% mutate(대대분류 = "전체생산비(1,032만원)")
+dd <- dd %>% mutate(대분류 = ifelse(소분류 == 대분류, "전체생산비(1,032만원)", 대분류))
+dd <- dd %>% group_by(대분류) %>%
+  mutate(대분류 = ifelse(대분류 != "전체생산비(1,032만원)", paste0(대분류, "(",  round(sum(평균)/10000, 0), "만원)"), 대분류)) %>%
+  mutate(소분류 = paste0(소분류, "(",  round(평균/10000, 0), "만원)")) %>%
+  ungroup()
+
+dd1 <- dd %>% select(1:3) %>% filter(소분류 != "전체생산비(1,032만원)")
+dd2 <- dd %>% select(2:4) %>% select(1, 3, 2)  %>% filter(대분류 != "전체생산비(1,032만원)")
+
 
 colnames(dd1) <- c("source", "target", "value")
 colnames(dd2) <- c("source", "target", "value")
 
 char_to_num <- tibble(
-  name = c(dd1 %>% rbind(dd2) %>% pull(source) %>% unique(), "전체생산비")
+  name = c(dd1 %>% rbind(dd2) %>% 
+             pull(source) %>% unique(), "전체생산비(1,032만원)")
 )
 
 char_to_num <- char_to_num %>% mutate(num = row_number()-1)
@@ -102,7 +113,6 @@ colnames(link) <- c("source", "target", "value")
 
 node <- dd1 %>% rbind(dd2) %>% select(1) %>% rename(name = source) %>% as.data.frame()
 node <- char_to_num %>% select(1)
-
 
 p <- sankeyNetwork(Links = link, Nodes = node, Source = "source",
                    Target = "target", Value = "value", NodeID = "name",
